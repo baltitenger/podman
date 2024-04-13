@@ -19,6 +19,7 @@ type roffRenderer struct {
 	firstHeader  bool
 	firstDD      bool
 	listDepth    int
+	itemStarted  bool
 }
 
 const (
@@ -141,8 +142,8 @@ func (r *roffRenderer) RenderNode(w io.Writer, node *blackfriday.Node, entering 
 	case blackfriday.Document:
 		break
 	case blackfriday.Paragraph:
-		// roff .PP markers break lists
-		if r.listDepth > 0 {
+		if r.itemStarted {
+			r.itemStarted = entering
 			return blackfriday.GoToNext
 		}
 		if entering {
@@ -233,6 +234,7 @@ func (r *roffRenderer) handleList(w io.Writer, node *blackfriday.Node, entering 
 
 func (r *roffRenderer) handleItem(w io.Writer, node *blackfriday.Node, entering bool) {
 	if entering {
+		r.itemStarted = true
 		if node.ListFlags&blackfriday.ListTypeOrdered != 0 {
 			out(w, fmt.Sprintf(".IP \"%3d.\" 5\n", r.listCounters[len(r.listCounters)-1]))
 			r.listCounters[len(r.listCounters)-1]++
